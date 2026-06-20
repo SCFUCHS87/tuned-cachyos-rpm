@@ -4,7 +4,7 @@
 
 This repository packages CachyOS-specific TuneD profiles for Fedora/COPR as `tuned-cachyos-profiles`. The single packaging entry point is `tuned-cachyos-profiles.spec`. Profile sources live in `etc/tuned/profiles/<profile-name>/tuned.conf` and are installed to `/etc/tuned/profiles/`. The root-level `scripts/pci-pm.sh` is installed to every profile's `scripts/` subdirectory by the spec's `%install` section.
 
-PPD mapping lives in `/etc/tuned/ppd.conf`, which is owned by the `tuned-ppd` package. This package does not ship it as a payload file — instead, the `%post` scriptlet writes the CachyOS mapping into it on install. The file is stamped with `# managed by tuned-cachyos-profiles` so the scriptlet can distinguish it from a foreign config (foreign files get backed up to `ppd.conf.tuned-cachyos.bak` first). On upgrade, managed `ppd.conf` files are preserved and non-managed files are left untouched. On removal (`%preun`, `$1 -eq 0`), the backup is restored and deleted; if no backup exists and the file is ours, it is removed.
+PPD mapping lives in `/etc/tuned/ppd.conf`, which is owned by the `tuned-ppd` package. This package does not ship it as a payload file. On fresh install (`%post`, `$1 -eq 1`), the scriptlet writes the CachyOS mapping and backs up foreign configs to `ppd.conf.tuned-cachyos.bak` first. The managed file is stamped with `# managed by tuned-cachyos-profiles`. On upgrade, existing `ppd.conf` content is preserved, including non-managed files. On removal (`%preun`, `$1 -eq 0`), the backup is restored and deleted; if no backup exists and the file is ours, it is removed.
 
 This repo is the RPM counterpart to the AUR repo at https://github.com/SCFUCHS87/tuned-cachyos. Profile content is identical — only the packaging layer differs. Keep them in sync when fixing profile bugs.
 
@@ -32,6 +32,7 @@ Always keep these files in sync — stale docs or metadata are a common failure 
 | Profile tuning values (`tuned.conf`) | `README.md` profile details table if EPP/governor/swappiness changed; mirror in AUR repo |
 | Profile added or removed | `%files` in spec (tuned.conf + scripts line), `%post`/`%preun` ppd.conf block if in PPD map, PPD tables in `README.md` and `CLAUDE.md`, bump `Version:`, add `%changelog` entry |
 | PPD mappings in `%post` | PPD mapping tables in `README.md` and `CLAUDE.md` |
+| RPM packaging/scriptlet behavior | `Release:` and `%changelog` in the spec; lifecycle docs in `README.md`, `AGENTS.md`, and `CLAUDE.md` |
 | `Version:` bump | Add `%changelog` entry at top of changelog; tag release with `git tag v<version>` |
 | `scripts/pci-pm.sh` behavior | Scripts section in `CLAUDE.md`; mirror in AUR repo |
 | `%post`/`%preun` scriptlet behavior | ppd.conf lifecycle description in `CLAUDE.md` and `README.md`; mirror logic in AUR repo `.install` file |
@@ -48,3 +49,7 @@ Use short imperative summaries. Keep commits focused: profile behavior, spec/pac
 ## Agent-Specific Instructions
 
 Keep `AGENTS.md` and `CLAUDE.md` aligned when workflow, architecture, or validation guidance changes. Do not remove tracked `etc/` profile files — `.gitignore` excludes `/etc/` but these files are already tracked as the package payload.
+
+## Current Status
+
+As of June 20, 2026, the package is at `1.0.0-2`. The latest work fixed `%post` upgrade handling so package upgrades preserve existing `/etc/tuned/ppd.conf` content, removed a stale `install-ppd.sh` reference from `CLAUDE.md`, and updated the docs to match the implemented lifecycle. `rpmspec`/`rpmbuild` were not available in the local environment; validate with `rpmbuild -ba tuned-cachyos-profiles.spec` or `mock` before publishing binaries.

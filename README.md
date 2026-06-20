@@ -41,8 +41,8 @@ The package writes `/etc/tuned/ppd.conf` on install to wire up KDE PowerDevil â†
 
 ## ppd.conf lifecycle
 
-- **Fresh install:** any existing `ppd.conf` not managed by this package is backed up to `/etc/tuned/ppd.conf.tuned-cachyos.bak` before being replaced.
-- **Upgrade:** a managed `ppd.conf` (identified by sentinel comment) is preserved; non-managed files are left untouched.
+- **Fresh install:** any existing `ppd.conf` not managed by this package is backed up to `/etc/tuned/ppd.conf.tuned-cachyos.bak` before being replaced with the CachyOS mapping.
+- **Upgrade:** existing `ppd.conf` content is preserved. Managed files stay in place, and non-managed files are left untouched.
 - **Removal:** the backup is restored if it exists; if no backup and the file is ours, it is removed.
 
 ---

@@ -22,7 +22,6 @@ mock -r fedora-42-x86_64 tuned-cachyos-profiles.spec
 Manual apply without packaging (for quick testing):
 ```bash
 sudo cp -r etc/tuned/profiles/* /etc/tuned/profiles/
-sudo sh -c '. ./install-ppd.sh'   # see scripts/install-ppd.sh if available
 
 sudo tuned-adm profile <profile-name>
 tuned-adm active
@@ -40,6 +39,7 @@ cat /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference | sort -u
 - **Shell variables in `%install`**: use `$var`, not `%{var}`. RPM expands `%{...}` as macros before the shell runs — `%{profile}` in a loop would be treated as an undefined macro, not the shell variable.
 - **`%autosetup -n tuned-cachyos-rpm-%{version}`**: GitHub archives extract to `<repo-name>-<version>/`, not `<package-name>-<version>/`. The `-n` flag tells RPM the actual directory name after extraction.
 - **`%{_sysconfdir}` in scriptlets**: macros ARE expanded in `%post`/`%preun` before the shell runs, so `ppd_conf=%{_sysconfdir}/tuned/ppd.conf` correctly becomes `/etc/tuned/ppd.conf` at install time.
+- **Scriptlet arguments**: `%post` uses `$1 -eq 1` for fresh installs so foreign `ppd.conf` files are backed up and replaced only on install. Upgrades preserve the existing `ppd.conf`, managed or not.
 - **`%dir` entries**: RPM requires explicit ownership of every directory the package creates. Missing `%dir` entries cause build warnings and leave orphaned directories on removal.
 
 ## Package structure
@@ -53,7 +53,7 @@ cat /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference | sort -u
 
 Each profile is a single `tuned.conf` that `include=`s an upstream TuneD base profile, then overrides specific sections (`[cpu]`, `[vm]`, `[sysctl]`).
 
-Profiles are wired to KDE PowerDevil via `/etc/tuned/ppd.conf`, which maps PPD states to TuneD profiles separately for AC and battery. `tuned-ppd` owns that file, so this package does not ship it as a payload file. Instead, the `%post` scriptlet writes the mapping on install. The file is stamped with `# managed by tuned-cachyos-profiles` so the scriptlet can distinguish it from a foreign config; foreign files are backed up once to `/etc/tuned/ppd.conf.tuned-cachyos.bak` before being replaced. On upgrade, a managed `ppd.conf` is preserved; non-managed files are left untouched. On removal (`%preun` with `$1 -eq 0`), the backup is restored and deleted; if no backup exists and `ppd.conf` is ours, it is removed.
+Profiles are wired to KDE PowerDevil via `/etc/tuned/ppd.conf`, which maps PPD states to TuneD profiles separately for AC and battery. `tuned-ppd` owns that file, so this package does not ship it as a payload file. On fresh install (`%post` with `$1 -eq 1`), the scriptlet writes the mapping. The file is stamped with `# managed by tuned-cachyos-profiles` so the scriptlet can distinguish it from a foreign config; foreign files are backed up once to `/etc/tuned/ppd.conf.tuned-cachyos.bak` before being replaced. On upgrade, existing `ppd.conf` content is preserved, managed or not. On removal (`%preun` with `$1 -eq 0`), the backup is restored and deleted; if no backup exists and `ppd.conf` is ours, it is removed.
 
 | PPD state | On AC | On battery |
 |---|---|---|
@@ -107,6 +107,8 @@ KDE PowerDevil defaults: AC → `performance`, Battery → `power-saver`.
 
 **Changing the `%post`/`%preun` scriptlets:**
 - Update the ppd.conf lifecycle description in `CLAUDE.md` and `README.md`
+- Update `AGENTS.md` if workflow, lifecycle, or validation guidance changes
+- Bump `Release:` and add a `%changelog` entry for packaging behavior changes
 - Mirror equivalent logic in the AUR repo's `.install` file
 
 ## Key design decisions
@@ -123,3 +125,7 @@ Profile content (`etc/tuned/profiles/`, `scripts/`) is kept in sync with https:/
 ## .gitignore note
 
 `/etc/` is in `.gitignore` but the profile files under `etc/tuned/profiles/` are tracked — they are the package payload. Do not remove them from tracking.
+
+## Current status
+
+As of June 20, 2026, the package is at `1.0.0-2`. The latest work fixed `%post` upgrade handling so package upgrades preserve existing `/etc/tuned/ppd.conf` content, removed a stale `install-ppd.sh` quick-test reference, and updated `README.md`, `AGENTS.md`, and `CLAUDE.md` to match the implemented lifecycle. `rpmspec`/`rpmbuild` were not available locally; run `rpmbuild -ba tuned-cachyos-profiles.spec` or `mock -r fedora-42-x86_64 tuned-cachyos-profiles.spec` before publishing binaries.

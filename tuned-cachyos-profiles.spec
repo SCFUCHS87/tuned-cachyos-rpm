@@ -1,6 +1,6 @@
 Name:           tuned-cachyos-profiles
 Version:        1.0.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        CachyOS-flavored TuneD profiles for AMD laptops
 
 License:        MIT
@@ -56,15 +56,16 @@ done
 ppd_conf=%{_sysconfdir}/tuned/ppd.conf
 backup_conf=%{_sysconfdir}/tuned/ppd.conf.tuned-cachyos.bak
 
-# Back up any ppd.conf that is not ours before overwriting
-if [ -e "$ppd_conf" ] && ! grep -q 'managed by tuned-cachyos-profiles' "$ppd_conf"; then
-    cp -a "$ppd_conf" "$backup_conf"
-fi
+if [ "$1" -eq 1 ]; then
+    # Back up any ppd.conf that is not ours before overwriting on fresh install
+    if [ -e "$ppd_conf" ] && ! grep -q 'managed by tuned-cachyos-profiles' "$ppd_conf"; then
+        cp -a "$ppd_conf" "$backup_conf"
+    fi
 
-# Write our ppd.conf only if it does not already have our sentinel
-if ! grep -q 'managed by tuned-cachyos-profiles' "$ppd_conf" 2>/dev/null; then
-    install -d %{_sysconfdir}/tuned
-    cat > "$ppd_conf" << 'EOF'
+    # Write our ppd.conf only if it does not already have our sentinel
+    if ! grep -q 'managed by tuned-cachyos-profiles' "$ppd_conf" 2>/dev/null; then
+        install -d %{_sysconfdir}/tuned
+        cat > "$ppd_conf" << 'EOF'
 # managed by tuned-cachyos-profiles
 [main]
 default=balanced
@@ -83,9 +84,14 @@ power-saver=laptop-battery-powersaver-cachyos
 balanced=battery-balanced-cachyos
 performance=balanced-cachyos
 EOF
+        echo "tuned-cachyos-profiles: KDE PowerDevil / PPD mapping written to $ppd_conf"
+    else
+        echo "tuned-cachyos-profiles: existing managed PPD mapping preserved at $ppd_conf"
+    fi
+else
+    echo "tuned-cachyos-profiles: existing PPD mapping preserved on upgrade"
 fi
 
-echo "tuned-cachyos-profiles: KDE PowerDevil / PPD mapping written to $ppd_conf"
 echo "Enable TuneD if not already running: sudo systemctl enable --now tuned tuned-ppd"
 
 %preun
@@ -132,6 +138,10 @@ fi
 %{_sysconfdir}/tuned/profiles/throughput-performance-cachyos/scripts/pci-pm.sh
 
 %changelog
+* Sat Jun 20 2026 Steven Fuchs <stevencfuchs@icloud.com> - 1.0.0-2
+- Preserve existing /etc/tuned/ppd.conf mappings on package upgrades
+- Remove stale manual install-ppd.sh documentation reference
+
 * Sat Jun 20 2026 Steven Fuchs <stevencfuchs@icloud.com> - 1.0.0-1
 - Initial RPM release
 - Six TuneD profiles covering all AC/battery PPD state combinations
