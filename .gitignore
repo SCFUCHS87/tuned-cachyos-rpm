@@ -1,0 +1,46 @@
+# --- General system files ---
+*.swp
+*.bak
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# --- Linux system noise ---
+/etc/
+/var/
+/tmp/
+*.pid
+*.lock
+
+# --- Logs and cache ---
+*.log
+*.cache
+*.old
+*.out
+
+# --- Editor/IDE files ---
+.vscode/
+.idea/
+*.iml
+
+# --- RPM build artifacts ---
+*.tar
+*.tar.*
+*.gz
+*.zip
+*.xz
+*.rpm
+SRPMS/
+RPMS/
+BUILD/
+BUILDROOT/
+~/rpmbuild/
+
+# --- Personal notes and drafts ---
+reddit-*.md
+draft-*.md
+notes-*.md
+*.draft
+NOTES.md
+DRAFT.md
