@@ -23,30 +23,33 @@ and PCI/USB runtime PM via a helper script.
 KDE PowerDevil integration is configured automatically via /etc/tuned/ppd.conf.
 
 %prep
-%autosetup
+# GitHub archives extract to <repo-name>-<version>/, not <package-name>-<version>/
+%autosetup -n tuned-cachyos-rpm-%{version}
+
+%build
+# Nothing to build — noarch config files only
 
 %install
 install -d %{buildroot}%{_sysconfdir}/tuned/profiles
 
 for profile_dir in etc/tuned/profiles/*/; do
     profile=$(basename "$profile_dir")
-    install -d %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}
+    install -d %{buildroot}%{_sysconfdir}/tuned/profiles/$profile
+    install -d %{buildroot}%{_sysconfdir}/tuned/profiles/$profile/scripts
     install -m644 "$profile_dir/tuned.conf" \
-        %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}/tuned.conf
+        %{buildroot}%{_sysconfdir}/tuned/profiles/$profile/tuned.conf
 
     # Per-profile scripts/
     if [ -d "$profile_dir/scripts" ]; then
-        install -d %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}/scripts
         for f in "$profile_dir/scripts/"*; do
             install -m755 "$f" \
-                %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}/scripts/
+                %{buildroot}%{_sysconfdir}/tuned/profiles/$profile/scripts/
         done
     fi
 
     # Fan out root scripts/ to every profile
-    install -d %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}/scripts
     install -m755 scripts/pci-pm.sh \
-        %{buildroot}%{_sysconfdir}/tuned/profiles/%{profile}/scripts/pci-pm.sh
+        %{buildroot}%{_sysconfdir}/tuned/profiles/$profile/scripts/pci-pm.sh
 done
 
 %post
@@ -103,6 +106,18 @@ fi
 %files
 %license LICENSE
 %doc README.md
+%dir %{_sysconfdir}/tuned/profiles/balanced-cachyos
+%dir %{_sysconfdir}/tuned/profiles/balanced-cachyos/scripts
+%dir %{_sysconfdir}/tuned/profiles/battery-balanced-cachyos
+%dir %{_sysconfdir}/tuned/profiles/battery-balanced-cachyos/scripts
+%dir %{_sysconfdir}/tuned/profiles/laptop-ac-balanced-cachyos
+%dir %{_sysconfdir}/tuned/profiles/laptop-ac-balanced-cachyos/scripts
+%dir %{_sysconfdir}/tuned/profiles/laptop-ac-powersaver-cachyos
+%dir %{_sysconfdir}/tuned/profiles/laptop-ac-powersaver-cachyos/scripts
+%dir %{_sysconfdir}/tuned/profiles/laptop-battery-powersaver-cachyos
+%dir %{_sysconfdir}/tuned/profiles/laptop-battery-powersaver-cachyos/scripts
+%dir %{_sysconfdir}/tuned/profiles/throughput-performance-cachyos
+%dir %{_sysconfdir}/tuned/profiles/throughput-performance-cachyos/scripts
 %config(noreplace) %{_sysconfdir}/tuned/profiles/balanced-cachyos/tuned.conf
 %config(noreplace) %{_sysconfdir}/tuned/profiles/battery-balanced-cachyos/tuned.conf
 %config(noreplace) %{_sysconfdir}/tuned/profiles/laptop-ac-balanced-cachyos/tuned.conf

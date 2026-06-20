@@ -35,6 +35,13 @@ cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor | sort -u
 cat /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference | sort -u
 ```
 
+## RPM spec gotchas
+
+- **Shell variables in `%install`**: use `$var`, not `%{var}`. RPM expands `%{...}` as macros before the shell runs — `%{profile}` in a loop would be treated as an undefined macro, not the shell variable.
+- **`%autosetup -n tuned-cachyos-rpm-%{version}`**: GitHub archives extract to `<repo-name>-<version>/`, not `<package-name>-<version>/`. The `-n` flag tells RPM the actual directory name after extraction.
+- **`%{_sysconfdir}` in scriptlets**: macros ARE expanded in `%post`/`%preun` before the shell runs, so `ppd_conf=%{_sysconfdir}/tuned/ppd.conf` correctly becomes `/etc/tuned/ppd.conf` at install time.
+- **`%dir` entries**: RPM requires explicit ownership of every directory the package creates. Missing `%dir` entries cause build warnings and leave orphaned directories on removal.
+
 ## Package structure
 
 - `tuned-cachyos-profiles.spec` — RPM spec file; the single source of truth for packaging
